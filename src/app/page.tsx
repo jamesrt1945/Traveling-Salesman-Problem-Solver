@@ -55,16 +55,34 @@ function nearestNeighbor(cities: City[]): { path: number[]; distance: number } {
 }
 
 export default function Home() {
-  const [input, setInput] = useState('0,0\n1,1\n2,2\n3,0\n4,1');
-  const [cities, setCities] = useState<City[]>([]);
+  const [cities, setCities] = useState<City[]>([
+    { x: 0, y: 0, id: 0 },
+    { x: 1, y: 1, id: 1 },
+    { x: 2, y: 2, id: 2 },
+    { x: 3, y: 0, id: 3 },
+    { x: 4, y: 1, id: 4 },
+  ]);
   const [path, setPath] = useState<number[]>([]);
   const [totalDistance, setTotalDistance] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const addCity = () => {
+    const newId = cities.length;
+    setCities([...cities, { x: 0, y: 0, id: newId }]);
+  };
+
+  const removeCity = (id: number) => {
+    const newCities = cities.filter(city => city.id !== id).map((city, index) => ({ ...city, id: index }));
+    setCities(newCities);
+  };
+
+  const updateCity = (id: number, field: 'x' | 'y', value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setCities(cities.map(city => city.id === id ? { ...city, [field]: numValue } : city));
+  };
+
   const handleSolve = () => {
-    const parsedCities = parseCities(input);
-    setCities(parsedCities);
-    const result = nearestNeighbor(parsedCities);
+    const result = nearestNeighbor(cities);
     setPath(result.path);
     setTotalDistance(result.distance);
   };
@@ -124,39 +142,113 @@ export default function Home() {
     }
   }, [cities, path]);
 
-  return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4">Travelling Salesman Problem Solver</h1>
-        <p className="mb-4">Enter city coordinates (x,y) one per line:</p>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="w-full h-32 p-2 border border-gray-300 rounded mb-4"
-          placeholder="0,0
-1,1
-2,2"
-        />
-        <button
-          onClick={handleSolve}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4"
-        >
-          Solve with Nearest Neighbor
-        </button>
-        {path.length > 0 && (
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold">Solution</h2>
-            <p>Path: {path.map(id => cities[id].id).join(' -> ')}</p>
-            <p>Total Distance: {totalDistance.toFixed(2)}</p>
+return (
+  <div className="min-h-screen bg-[#0B0F1A] p-8 text-gray-100">
+    <div className="max-w-5xl mx-auto">
+
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <h1 className="py-2 text-4xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          Travelling Salesman Visual Solver
+        </h1>
+        <p className="mt-2 text-gray-400">
+          Nearest Neighbor heuristic with real-time visualization
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Left Panel */}
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl">
+          <h2 className="text-xl font-semibold mb-4">Cities</h2>
+
+          <div className="space-y-3">
+            {cities.map(city => (
+              <div
+                key={city.id}
+                className="flex items-center justify-between bg-white/5 rounded-xl p-3 hover:bg-white/10 transition"
+              >
+                <span className="text-sm text-gray-300">
+                  City {city.id + 1}
+                </span>
+
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={city.x}
+                    onChange={(e) => updateCity(city.id, 'x', e.target.value)}
+                    className="w-20 px-2 py-1 rounded-lg bg-black/40 border border-white/10 focus:ring-2 focus:ring-cyan-400 outline-none"
+                    placeholder="X"
+                  />
+                  <input
+                    type="number"
+                    value={city.y}
+                    onChange={(e) => updateCity(city.id, 'y', e.target.value)}
+                    className="w-20 px-2 py-1 rounded-lg bg-black/40 border border-white/10 focus:ring-2 focus:ring-purple-400 outline-none"
+                    placeholder="Y"
+                  />
+                  <button
+                    onClick={() => removeCity(city.id)}
+                    disabled={cities.length <= 1}
+                    className="text-red-400 hover:text-red-500 disabled:opacity-30"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
-        <canvas
-          ref={canvasRef}
-          width={400}
-          height={400}
-          className="border border-gray-300"
-        />
+
+          <button
+            onClick={addCity}
+            className="mt-4 w-full py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold hover:opacity-90 transition"
+          >
+            + Add City
+          </button>
+
+          <button
+            onClick={handleSolve}
+            className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-black font-bold text-lg shadow-lg hover:scale-[1.02] transition"
+          >
+            Solve Route
+          </button>
+
+          {path.length > 0 && (
+            <div className="mt-6 bg-black/30 rounded-xl p-4">
+              <h3 className="font-semibold mb-2">Solution</h3>
+              <p className="text-sm text-gray-300 mb-1">
+                Distance: <span className="text-cyan-400 font-bold">{totalDistance.toFixed(2)}</span>
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {path.map((id, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 text-xs rounded-full bg-white/10 border border-white/10"
+                  >
+                    {cities[id].id + 1}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel */}
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col items-center">
+          <h2 className="text-xl font-semibold mb-4">Route Visualization</h2>
+          <canvas
+            ref={canvasRef}
+            width={420}
+            height={420}
+            className="rounded-xl border border-white/10 bg-[#020617]"
+          />
+          <p className="mt-3 text-sm text-gray-400">
+            Cities and optimized traversal path
+          </p>
+        </div>
+
       </div>
     </div>
-  );
-}
+  </div>
+);
+};
