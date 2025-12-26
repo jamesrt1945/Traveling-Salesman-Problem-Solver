@@ -1,8 +1,58 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, createContext, useContext } from 'react';
 
 type City = { x: number; y: number; id: number };
+
+type Theme = 'light' | 'dark';
+
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+function useTheme() {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+}
+
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>('light');
+
+  useEffect(() => {
+    // Check for saved theme preference or default to light mode
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(prefersDark ? 'dark' : 'light');
+    }
+  }, []);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
 
 function parseCities(input: string): City[] {
   return input.trim().split('\n').filter(line => line.trim()).map((line, i) => {
@@ -15,6 +65,15 @@ function parseCities(input: string): City[] {
 
 function distance(c1: City, c2: City): number {
   return Math.sqrt((c1.x - c2.x) ** 2 + (c1.y - c2.y) ** 2);
+}
+
+function calculateDistance(tour: number[], cities: City[]): number {
+  let dist = 0;
+  for (let i = 0; i < tour.length - 1; i++) {
+    dist += distance(cities[tour[i]], cities[tour[i+1]]);
+  }
+  dist += distance(cities[tour[tour.length-1]], cities[tour[0]]);
+  return dist;
 }
 
 function nearestNeighbor(cities: City[]): { path: number[]; distance: number } {
@@ -54,6 +113,84 @@ function nearestNeighbor(cities: City[]): { path: number[]; distance: number } {
   return { path, distance: totalDistance };
 }
 
+function twoOpt(cities: City[]): { path: number[]; distance: number } {
+  // Start with nearest neighbor
+  let currentTour = nearestNeighbor(cities).path.slice(0, -1); // remove the closing 0
+  let currentDistance = calculateDistance(currentTour, cities);
+
+  let improved = true;
+  while (improved) {
+    improved = false;
+    for (let i = 1; i < currentTour.length - 1; i++) {
+      for (let j = i + 1; j < currentTour.length; j++) {
+        const newTour = twoOptSwap(currentTour, i, j);
+        const newDistance = calculateDistance(newTour, cities);
+        if (newDistance < currentDistance) {
+          currentTour = newTour;
+          currentDistance = newDistance;
+          improved = true;
+        }
+      }
+    }
+  }
+
+  currentTour.push(0); // close the tour
+  return { path: currentTour, distance: currentDistance };
+}
+
+function twoOptSwap(tour: number[], i: number, j: number): number[] {
+  const newTour = [...tour];
+  // reverse from i to j
+  let left = i;
+  let right = j;
+  while (left < right) {
+    [newTour[left], newTour[right]] = [newTour[right], newTour[left]];
+    left++;
+    right--;
+  }
+  return newTour;
+}
+
+function simulatedAnnealing(cities: City[]): { path: number[]; distance: number } {
+  // Start with nearest neighbor
+  let currentTour = nearestNeighbor(cities).path.slice(0, -1);
+  let currentDistance = calculateDistance(currentTour, cities);
+  let bestTour = [...currentTour];
+  let bestDistance = currentDistance;
+
+  let temperature = 1000;
+  const coolingRate = 0.995;
+  const minTemperature = 0.1;
+
+  while (temperature > minTemperature) {
+    // Generate neighbor by swapping two cities
+    const i = Math.floor(Math.random() * currentTour.length);
+    const j = Math.floor(Math.random() * currentTour.length);
+    const newTour = [...currentTour];
+    [newTour[i], newTour[j]] = [newTour[j], newTour[i]];
+    const newDistance = calculateDistance(newTour, cities);
+
+    if (newDistance < currentDistance || Math.random() < Math.exp((currentDistance - newDistance) / temperature)) {
+      currentTour = newTour;
+      currentDistance = newDistance;
+      if (newDistance < bestDistance) {
+        bestTour = [...newTour];
+        bestDistance = newDistance;
+      }
+    }
+    temperature *= coolingRate;
+  }
+
+  bestTour.push(0);
+  return { path: bestTour, distance: bestDistance };
+}
+
+function greedyHeuristic(cities: City[]): { path: number[]; distance: number } {
+  // For now, using nearest neighbor as greedy heuristic
+  // Could be modified to use a different greedy approach
+  return nearestNeighbor(cities);
+}
+
 export default function Home() {
   const [cities, setCities] = useState<City[]>([
     { x: 0, y: 0, id: 0 },
@@ -64,6 +201,7 @@ export default function Home() {
   ]);
   const [path, setPath] = useState<number[]>([]);
   const [totalDistance, setTotalDistance] = useState(0);
+  const [method, setMethod] = useState<string>('nearestNeighbor');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const addCity = () => {
@@ -82,7 +220,23 @@ export default function Home() {
   };
 
   const handleSolve = () => {
-    const result = nearestNeighbor(cities);
+    let result: { path: number[]; distance: number };
+    switch (method) {
+      case 'nearestNeighbor':
+        result = nearestNeighbor(cities);
+        break;
+      case 'twoOpt':
+        result = twoOpt(cities);
+        break;
+      case 'simulatedAnnealing':
+        result = simulatedAnnealing(cities);
+        break;
+      case 'greedyHeuristic':
+        result = greedyHeuristic(cities);
+        break;
+      default:
+        result = nearestNeighbor(cities);
+    }
     setPath(result.path);
     setTotalDistance(result.distance);
   };
@@ -115,19 +269,25 @@ export default function Home() {
       const x = (city.x - minX) * scale + offsetX;
       const y = (city.y - minY) * scale + offsetY;
       ctx.beginPath();
-      ctx.arc(x, y, 5, 0, 2 * Math.PI);
-      ctx.fillStyle = 'blue';
+      ctx.arc(x, y, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = '#2563eb'; // Blue-600
       ctx.fill();
-      ctx.fillStyle = 'black';
-      ctx.font = '12px Arial';
-      ctx.fillText(city.id.toString(), x + 8, y - 8);
+      ctx.strokeStyle = '#1e40af'; // Blue-700
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText((city.id + 1).toString(), x, y + 4);
     });
 
     // Draw path
     if (path.length > 1) {
       ctx.beginPath();
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#dc2626'; // Red-600
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       const start = cities[path[0]];
       const startX = (start.x - minX) * scale + offsetX;
       const startY = (start.y - minY) * scale + offsetY;
@@ -139,112 +299,198 @@ export default function Home() {
         ctx.lineTo(x, y);
       }
       ctx.stroke();
+
+      // Draw arrows on path
+      ctx.strokeStyle = '#dc2626';
+      ctx.fillStyle = '#dc2626';
+      for (let i = 0; i < path.length - 1; i++) {
+        const from = cities[path[i]];
+        const to = cities[path[i + 1]];
+        const fromX = (from.x - minX) * scale + offsetX;
+        const fromY = (from.y - minY) * scale + offsetY;
+        const toX = (to.x - minX) * scale + offsetX;
+        const toY = (to.y - minY) * scale + offsetY;
+
+        // Calculate arrow position (80% along the line)
+        const arrowX = fromX + (toX - fromX) * 0.8;
+        const arrowY = fromY + (toY - fromY) * 0.8;
+
+        // Calculate arrow direction
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+
+        // Draw arrowhead
+        ctx.save();
+        ctx.translate(arrowX, arrowY);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(-8, -4);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(-8, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
     }
   }, [cities, path]);
 
 return (
-  <div className="min-h-screen bg-[#0B0F1A] p-8 text-gray-100">
-    <div className="max-w-5xl mx-auto">
+  <div className="min-h-screen bg-gray-50 p-8">
+    <div className="max-w-6xl mx-auto">
 
       {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="py-2 text-4xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-          Travelling Salesman Visual Solver
+      <div className="mb-12 text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          Traveling Salesman Problem Solver
         </h1>
-        <p className="mt-2 text-gray-400">
-          Nearest Neighbor heuristic with real-time visualization
+        <p className="text-lg text-gray-600">
+          Interactive visualization with multiple heuristic algorithms
         </p>
+        <div className="mt-4 h-1 w-24 bg-blue-600 mx-auto rounded-full"></div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* Left Panel */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl">
-          <h2 className="text-xl font-semibold mb-4">Cities</h2>
+        {/* Left Panel - Controls */}
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Problem Configuration</h2>
 
-          <div className="space-y-3">
-            {cities.map(city => (
-              <div
-                key={city.id}
-                className="flex items-center justify-between bg-white/5 rounded-xl p-3 hover:bg-white/10 transition"
-              >
-                <span className="text-sm text-gray-300">
-                  City {city.id + 1}
-                </span>
+          {/* Cities Section */}
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">Cities</h3>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {cities.map(city => (
+                <div
+                  key={city.id}
+                  className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors"
+                >
+                  <span className="font-medium text-gray-700">
+                    City {city.id + 1}
+                  </span>
 
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={city.x}
-                    onChange={(e) => updateCity(city.id, 'x', e.target.value)}
-                    className="w-20 px-2 py-1 rounded-lg bg-black/40 border border-white/10 focus:ring-2 focus:ring-cyan-400 outline-none"
-                    placeholder="X"
-                  />
-                  <input
-                    type="number"
-                    value={city.y}
-                    onChange={(e) => updateCity(city.id, 'y', e.target.value)}
-                    className="w-20 px-2 py-1 rounded-lg bg-black/40 border border-white/10 focus:ring-2 focus:ring-purple-400 outline-none"
-                    placeholder="Y"
-                  />
-                  <button
-                    onClick={() => removeCity(city.id)}
-                    disabled={cities.length <= 1}
-                    className="text-red-400 hover:text-red-500 disabled:opacity-30"
-                  >
-                    ✕
-                  </button>
+                  <div className="flex gap-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={city.x}
+                        onChange={(e) => updateCity(city.id, 'x', e.target.value)}
+                        className="w-16 px-2 py-1 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                        placeholder="X"
+                      />
+                      <input
+                        type="number"
+                        value={city.y}
+                        onChange={(e) => updateCity(city.id, 'y', e.target.value)}
+                        className="w-16 px-2 py-1 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                        placeholder="Y"
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeCity(city.id)}
+                      disabled={cities.length <= 1}
+                      className="text-red-500 hover:text-red-700 disabled:opacity-30 disabled:cursor-not-allowed p-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <button
+              onClick={addCity}
+              className="mt-4 w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              + Add City
+            </button>
           </div>
 
-          <button
-            onClick={addCity}
-            className="mt-4 w-full py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold hover:opacity-90 transition"
-          >
-            + Add City
-          </button>
+          {/* Algorithm Selection */}
+          <div className="mb-6">
+            <label className="block text-lg font-medium text-gray-800 mb-3">Algorithm</label>
+            <select
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-gray-900"
+            >
+              <option value="nearestNeighbor">Nearest Neighbor</option>
+              <option value="twoOpt">2-Opt Local Search</option>
+              <option value="simulatedAnnealing">Simulated Annealing</option>
+              <option value="greedyHeuristic">Greedy Heuristic</option>
+            </select>
+          </div>
 
+          {/* Solve Button */}
           <button
             onClick={handleSolve}
-            className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-black font-bold text-lg shadow-lg hover:scale-[1.02] transition"
+            className="w-full py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-md"
           >
-            Solve Route
+            Solve TSP
           </button>
 
+          {/* Results */}
           {path.length > 0 && (
-            <div className="mt-6 bg-black/30 rounded-xl p-4">
-              <h3 className="font-semibold mb-2">Solution</h3>
-              <p className="text-sm text-gray-300 mb-1">
-                Distance: <span className="text-cyan-400 font-bold">{totalDistance.toFixed(2)}</span>
-              </p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {path.map((id, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 text-xs rounded-full bg-white/10 border border-white/10"
-                  >
-                    {cities[id].id + 1}
-                  </span>
-                ))}
+            <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h3 className="font-semibold text-gray-900 mb-3">Solution Results</h3>
+              <div className="space-y-2">
+                <p className="text-gray-700">
+                  <span className="font-medium">Total Distance:</span>
+                  <span className="ml-2 text-blue-600 font-bold">{totalDistance.toFixed(2)}</span>
+                </p>
+                <div>
+                  <p className="font-medium text-gray-700 mb-2">Optimal Route:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {path.map((id, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 text-sm rounded-md bg-blue-100 text-blue-800 border border-blue-200"
+                      >
+                        {cities[id].id + 1}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Right Panel */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col items-center">
-          <h2 className="text-xl font-semibold mb-4">Route Visualization</h2>
-          <canvas
-            ref={canvasRef}
-            width={420}
-            height={420}
-            className="rounded-xl border border-white/10 bg-[#020617]"
-          />
-          <p className="mt-3 text-sm text-gray-400">
-            Cities and optimized traversal path
+        {/* Right Panel - Visualization */}
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 flex flex-col items-center">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Route Visualization</h2>
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <canvas
+              ref={canvasRef}
+              width={420}
+              height={420}
+              className="rounded border border-gray-300 bg-white"
+            />
+          </div>
+          <p className="mt-4 text-sm text-gray-600 text-center">
+            Interactive visualization of cities and the computed optimal route
           </p>
+
+          {/* Algorithm Info */}
+          <div className="mt-6 w-full bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <h3 className="font-semibold text-gray-900 mb-2">Algorithm Information</h3>
+            <div className="text-sm text-gray-600">
+              {method === 'nearestNeighbor' && (
+                <p>Nearest Neighbor: Starts at a city and repeatedly visits the nearest unvisited city.</p>
+              )}
+              {method === 'twoOpt' && (
+                <p>2-Opt: Improves an initial solution by swapping edges to reduce tour length.</p>
+              )}
+              {method === 'simulatedAnnealing' && (
+                <p>Simulated Annealing: Probabilistic technique that accepts worse solutions early to escape local optima.</p>
+              )}
+              {method === 'greedyHeuristic' && (
+                <p>Greedy Heuristic: Makes locally optimal choices at each step to find a solution.</p>
+              )}
+            </div>
+          </div>
         </div>
 
       </div>
