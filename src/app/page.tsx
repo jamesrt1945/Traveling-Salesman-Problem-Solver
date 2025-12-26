@@ -413,7 +413,7 @@ return (
                         className={`w-16 px-2 py-1 rounded border outline-none transition-colors ${
                           theme === 'dark'
                             ? 'bg-gray-600 border-gray-500 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
-                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            : 'border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
                         placeholder="X"
                       />
@@ -424,7 +424,7 @@ return (
                         className={`w-16 px-2 py-1 rounded border outline-none transition-colors ${
                           theme === 'dark'
                             ? 'bg-gray-600 border-gray-500 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
-                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            : 'border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
                         placeholder="Y"
                       />
@@ -466,7 +466,7 @@ return (
               className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors ${
                 theme === 'dark'
                   ? 'bg-gray-700 border-gray-600 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
-                  : 'border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  : 'border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
               }`}
             >
               <option value="nearestNeighbor">Nearest Neighbor</option>
