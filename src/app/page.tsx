@@ -1,58 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect, createContext, useContext } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { ThemeProvider, useTheme } from '../components/ThemeContext';
+import Header from '../components/Header';
+import CityList from '../components/CityList';
+import AlgorithmSelector from '../components/AlgorithmSelector';
+import Canvas from '../components/Canvas';
+import Results from '../components/Results';
+import AlgorithmInfo from '../components/AlgorithmInfo';
 
 type City = { x: number; y: number; id: number };
-
-type Theme = 'light' | 'dark';
-
-interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-}
-
-function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
-
-  useEffect(() => {
-    // Check for saved theme preference or default to light mode
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(prefersDark ? 'dark' : 'light');
-    }
-  }, []);
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-}
 
 function parseCities(input: string): City[] {
   return input.trim().split('\n').filter(line => line.trim()).map((line, i) => {
@@ -338,265 +295,74 @@ function Home() {
     }
   }, [cities, path, theme]);
 
-return (
-  <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
-    <div className="max-w-6xl mx-auto">
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
+      <div className="max-w-6xl mx-auto">
+        <Header />
 
-      {/* Header with Theme Toggle */}
-      <div className="mb-12 text-center relative">
-        <button
-          onClick={toggleTheme}
-          className={`absolute right-0 top-0 p-3 rounded-lg transition-colors duration-200 ${
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Panel - Controls */}
+          <div className={`rounded-lg shadow-lg border p-6 transition-colors duration-300 ${
             theme === 'dark'
-              ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
-              : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-          }`}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? (
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-            </svg>
-          )}
-        </button>
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-200'
+          }`}>
+            <h2 className={`text-2xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Problem Configuration
+            </h2>
 
-        <h1 className={`text-4xl font-bold mb-2 flex items-center justify-center gap-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-          <img
-            src="/logo.png"
-            alt="TSP Solver Logo"
-            className="h-12 w-12 object-contain"
-          />
-          <span>Traveling Salesman Problem Solver</span>
-        </h1>
-        <p className={`text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-          Interactive visualization with multiple heuristic algorithms
-        </p>
-        <div className={`mt-4 h-1 w-24 mx-auto rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
+            <CityList
+              cities={cities}
+              onAddCity={addCity}
+              onRemoveCity={removeCity}
+              onUpdateCity={updateCity}
+            />
 
-        {/* SEO-friendly description */}
-        <div className={`mt-6 max-w-3xl mx-auto text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} hidden md:block`}>
-          <p>
-            Solve the classic Traveling Salesman Problem using advanced heuristic algorithms.
-            Add cities by specifying coordinates, choose from multiple optimization techniques,
-            and visualize the computed routes in real-time. Compare algorithm performance and
-            understand how different approaches tackle this NP-hard optimization problem.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        {/* Left Panel - Controls */}
-        <div className={`rounded-lg shadow-lg border p-6 transition-colors duration-300 ${
-          theme === 'dark'
-            ? 'bg-gray-800 border-gray-700'
-            : 'bg-white border-gray-200'
-        }`}>
-          <h2 className={`text-2xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            Problem Configuration
-          </h2>
-
-          {/* Cities Section */}
-          <div className="mb-6">
-            <h3 className={`text-lg font-medium mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-              Cities
-            </h3>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {cities.map(city => (
-                <div
-                  key={city.id}
-                  className={`flex items-center justify-between rounded-lg p-4 border transition-colors ${
-                    theme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
-                    City {city.id + 1}
-                  </span>
-
-                  <div className="flex gap-3">
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={city.x}
-                        onChange={(e) => updateCity(city.id, 'x', e.target.value)}
-                        className={`w-16 px-2 py-1 rounded border outline-none transition-colors ${
-                          theme === 'dark'
-                            ? 'bg-gray-600 border-gray-500 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
-                            : 'border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                        }`}
-                        placeholder="X"
-                      />
-                      <input
-                        type="number"
-                        value={city.y}
-                        onChange={(e) => updateCity(city.id, 'y', e.target.value)}
-                        className={`w-16 px-2 py-1 rounded border outline-none transition-colors ${
-                          theme === 'dark'
-                            ? 'bg-gray-600 border-gray-500 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
-                            : 'border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                        }`}
-                        placeholder="Y"
-                      />
-                    </div>
-                    <button
-                      onClick={() => removeCity(city.id)}
-                      disabled={cities.length <= 1}
-                      className={`p-1 rounded transition-colors ${
-                        theme === 'dark'
-                          ? 'text-red-400 hover:text-red-300 disabled:opacity-30'
-                          : 'text-red-500 hover:text-red-700 disabled:opacity-30'
-                      } disabled:cursor-not-allowed`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <AlgorithmSelector
+              method={method}
+              onMethodChange={setMethod}
+            />
 
             <button
-              onClick={addCity}
-              className="mt-4 w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              onClick={handleSolve}
+              className="w-full py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-md"
             >
-              + Add City
+              Solve TSP
             </button>
-          </div>
 
-          {/* Algorithm Selection */}
-          <div className="mb-6">
-            <label className={`block text-lg font-medium mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-              Algorithm
-            </label>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors ${
-                theme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
-                  : 'border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              }`}
-            >
-              <option value="nearestNeighbor">Nearest Neighbor</option>
-              <option value="twoOpt">2-Opt Local Search</option>
-              <option value="simulatedAnnealing">Simulated Annealing</option>
-              <option value="greedyHeuristic">Greedy Heuristic</option>
-            </select>
-          </div>
-
-          {/* Solve Button */}
-          <button
-            onClick={handleSolve}
-            className="w-full py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-md"
-          >
-            Solve TSP
-          </button>
-
-          {/* Results */}
-          {path.length > 0 && (
-            <div className={`mt-6 rounded-lg p-4 border transition-colors ${
-              theme === 'dark'
-                ? 'bg-blue-900/20 border-blue-700'
-                : 'bg-blue-50 border-blue-200'
-            }`}>
-              <h3 className={`font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                Solution Results
-              </h3>
-              <div className="space-y-2">
-                <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
-                  <span className="font-medium">Total Distance:</span>
-                  <span className="ml-2 text-blue-400 font-bold">{totalDistance.toFixed(2)}</span>
-                </p>
-                <div>
-                  <p className={`font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Optimal Route:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {path.map((id, i) => (
-                      <span
-                        key={i}
-                        className={`px-3 py-1 text-sm rounded-md border ${
-                          theme === 'dark'
-                            ? 'bg-blue-900/50 text-blue-200 border-blue-700'
-                            : 'bg-blue-100 text-blue-800 border-blue-200'
-                        }`}
-                      >
-                        {cities[id].id + 1}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Panel - Visualization */}
-        <div className={`rounded-lg shadow-lg border p-6 flex flex-col items-center transition-colors duration-300 ${
-          theme === 'dark'
-            ? 'bg-gray-800 border-gray-700'
-            : 'bg-white border-gray-200'
-        }`}>
-          <h2 className={`text-2xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            Route Visualization
-          </h2>
-          <div className={`rounded-lg p-4 border transition-colors ${
-            theme === 'dark'
-              ? 'bg-gray-700 border-gray-600'
-              : 'bg-gray-50 border-gray-200'
-          }`}>
-            <canvas
-              ref={canvasRef}
-              width={420}
-              height={420}
-              className={`rounded border ${
-                theme === 'dark'
-                  ? 'border-gray-600'
-                  : 'border-gray-300'
-              }`}
+            <Results
+              path={path}
+              totalDistance={totalDistance}
+              cities={cities}
             />
           </div>
-          <p className={`mt-4 text-sm text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-            Interactive visualization of cities and the computed optimal route
-          </p>
 
-          {/* Algorithm Info */}
-          <div className={`mt-6 w-full rounded-lg p-4 border transition-colors ${
+          {/* Right Panel - Visualization */}
+          <div className={`rounded-lg shadow-lg border p-6 flex flex-col items-center transition-colors duration-300 ${
             theme === 'dark'
-              ? 'bg-gray-700 border-gray-600'
-              : 'bg-gray-50 border-gray-200'
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-200'
           }`}>
-            <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              Algorithm Information
-            </h3>
-            <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              {method === 'nearestNeighbor' && (
-                <p>Nearest Neighbor: Starts at a city and repeatedly visits the nearest unvisited city.</p>
-              )}
-              {method === 'twoOpt' && (
-                <p>2-Opt: Improves an initial solution by swapping edges to reduce tour length.</p>
-              )}
-              {method === 'simulatedAnnealing' && (
-                <p>Simulated Annealing: Probabilistic technique that accepts worse solutions early to escape local optima.</p>
-              )}
-              {method === 'greedyHeuristic' && (
-                <p>Greedy Heuristic: Makes locally optimal choices at each step to find a solution.</p>
-              )}
-            </div>
+            <h2 className={`text-2xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Route Visualization
+            </h2>
+
+            <Canvas
+              canvasRef={canvasRef}
+            />
+
+            <p className={`mt-4 text-sm text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Interactive visualization of cities and the computed optimal route
+            </p>
+
+            <AlgorithmInfo
+              method={method}
+            />
           </div>
         </div>
-
       </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default function Page() {
