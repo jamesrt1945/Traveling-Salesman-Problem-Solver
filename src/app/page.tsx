@@ -191,7 +191,8 @@ function greedyHeuristic(cities: City[]): { path: number[]; distance: number } {
   return nearestNeighbor(cities);
 }
 
-export default function Home() {
+function Home() {
+  const { theme, toggleTheme } = useTheme();
   const [cities, setCities] = useState<City[]>([
     { x: 0, y: 0, id: 0 },
     { x: 1, y: 1, id: 1 },
@@ -247,7 +248,9 @@ export default function Home() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Clear canvas with theme-appropriate background
+    ctx.fillStyle = theme === 'dark' ? '#1f2937' : '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (cities.length === 0) return;
 
@@ -270,12 +273,12 @@ export default function Home() {
       const y = (city.y - minY) * scale + offsetY;
       ctx.beginPath();
       ctx.arc(x, y, 6, 0, 2 * Math.PI);
-      ctx.fillStyle = '#2563eb'; // Blue-600
+      ctx.fillStyle = theme === 'dark' ? '#3b82f6' : '#2563eb'; // Blue colors
       ctx.fill();
-      ctx.strokeStyle = '#1e40af'; // Blue-700
+      ctx.strokeStyle = theme === 'dark' ? '#1d4ed8' : '#1e40af';
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = theme === 'dark' ? '#ffffff' : '#000000';
       ctx.font = 'bold 12px Arial';
       ctx.textAlign = 'center';
       ctx.fillText((city.id + 1).toString(), x, y + 4);
@@ -284,7 +287,7 @@ export default function Home() {
     // Draw path
     if (path.length > 1) {
       ctx.beginPath();
-      ctx.strokeStyle = '#dc2626'; // Red-600
+      ctx.strokeStyle = theme === 'dark' ? '#ef4444' : '#dc2626'; // Red colors
       ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -301,8 +304,8 @@ export default function Home() {
       ctx.stroke();
 
       // Draw arrows on path
-      ctx.strokeStyle = '#dc2626';
-      ctx.fillStyle = '#dc2626';
+      ctx.strokeStyle = theme === 'dark' ? '#ef4444' : '#dc2626';
+      ctx.fillStyle = theme === 'dark' ? '#ef4444' : '#dc2626';
       for (let i = 0; i < path.length - 1; i++) {
         const from = cities[path[i]];
         const to = cities[path[i + 1]];
@@ -333,39 +336,71 @@ export default function Home() {
         ctx.restore();
       }
     }
-  }, [cities, path]);
+  }, [cities, path, theme]);
 
 return (
-  <div className="min-h-screen bg-gray-50 p-8">
+  <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} p-8`}>
     <div className="max-w-6xl mx-auto">
 
-      {/* Header */}
-      <div className="mb-12 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+      {/* Header with Theme Toggle */}
+      <div className="mb-12 text-center relative">
+        <button
+          onClick={toggleTheme}
+          className={`absolute right-0 top-0 p-3 rounded-lg transition-colors duration-200 ${
+            theme === 'dark'
+              ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
+              : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+          }`}
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          )}
+        </button>
+
+        <h1 className={`text-4xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
           Traveling Salesman Problem Solver
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className={`text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
           Interactive visualization with multiple heuristic algorithms
         </p>
-        <div className="mt-4 h-1 w-24 bg-blue-600 mx-auto rounded-full"></div>
+        <div className={`mt-4 h-1 w-24 mx-auto rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* Left Panel - Controls */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Problem Configuration</h2>
+        <div className={`rounded-lg shadow-lg border p-6 transition-colors duration-300 ${
+          theme === 'dark'
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-200'
+        }`}>
+          <h2 className={`text-2xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            Problem Configuration
+          </h2>
 
           {/* Cities Section */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-800 mb-4">Cities</h3>
+            <h3 className={`text-lg font-medium mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+              Cities
+            </h3>
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {cities.map(city => (
                 <div
                   key={city.id}
-                  className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors"
+                  className={`flex items-center justify-between rounded-lg p-4 border transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}
                 >
-                  <span className="font-medium text-gray-700">
+                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                     City {city.id + 1}
                   </span>
 
@@ -375,21 +410,33 @@ return (
                         type="number"
                         value={city.x}
                         onChange={(e) => updateCity(city.id, 'x', e.target.value)}
-                        className="w-16 px-2 py-1 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                        className={`w-16 px-2 py-1 rounded border outline-none transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-gray-600 border-gray-500 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
+                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
                         placeholder="X"
                       />
                       <input
                         type="number"
                         value={city.y}
                         onChange={(e) => updateCity(city.id, 'y', e.target.value)}
-                        className="w-16 px-2 py-1 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                        className={`w-16 px-2 py-1 rounded border outline-none transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-gray-600 border-gray-500 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
+                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
                         placeholder="Y"
                       />
                     </div>
                     <button
                       onClick={() => removeCity(city.id)}
                       disabled={cities.length <= 1}
-                      className="text-red-500 hover:text-red-700 disabled:opacity-30 disabled:cursor-not-allowed p-1"
+                      className={`p-1 rounded transition-colors ${
+                        theme === 'dark'
+                          ? 'text-red-400 hover:text-red-300 disabled:opacity-30'
+                          : 'text-red-500 hover:text-red-700 disabled:opacity-30'
+                      } disabled:cursor-not-allowed`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -410,11 +457,17 @@ return (
 
           {/* Algorithm Selection */}
           <div className="mb-6">
-            <label className="block text-lg font-medium text-gray-800 mb-3">Algorithm</label>
+            <label className={`block text-lg font-medium mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+              Algorithm
+            </label>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-gray-900"
+              className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors ${
+                theme === 'dark'
+                  ? 'bg-gray-700 border-gray-600 text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400'
+                  : 'border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+              }`}
             >
               <option value="nearestNeighbor">Nearest Neighbor</option>
               <option value="twoOpt">2-Opt Local Search</option>
@@ -433,20 +486,32 @@ return (
 
           {/* Results */}
           {path.length > 0 && (
-            <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h3 className="font-semibold text-gray-900 mb-3">Solution Results</h3>
+            <div className={`mt-6 rounded-lg p-4 border transition-colors ${
+              theme === 'dark'
+                ? 'bg-blue-900/20 border-blue-700'
+                : 'bg-blue-50 border-blue-200'
+            }`}>
+              <h3 className={`font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Solution Results
+              </h3>
               <div className="space-y-2">
-                <p className="text-gray-700">
+                <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
                   <span className="font-medium">Total Distance:</span>
-                  <span className="ml-2 text-blue-600 font-bold">{totalDistance.toFixed(2)}</span>
+                  <span className="ml-2 text-blue-400 font-bold">{totalDistance.toFixed(2)}</span>
                 </p>
                 <div>
-                  <p className="font-medium text-gray-700 mb-2">Optimal Route:</p>
+                  <p className={`font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Optimal Route:
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {path.map((id, i) => (
                       <span
                         key={i}
-                        className="px-3 py-1 text-sm rounded-md bg-blue-100 text-blue-800 border border-blue-200"
+                        className={`px-3 py-1 text-sm rounded-md border ${
+                          theme === 'dark'
+                            ? 'bg-blue-900/50 text-blue-200 border-blue-700'
+                            : 'bg-blue-100 text-blue-800 border-blue-200'
+                        }`}
                       >
                         {cities[id].id + 1}
                       </span>
@@ -459,24 +524,44 @@ return (
         </div>
 
         {/* Right Panel - Visualization */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 flex flex-col items-center">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Route Visualization</h2>
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className={`rounded-lg shadow-lg border p-6 flex flex-col items-center transition-colors duration-300 ${
+          theme === 'dark'
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-200'
+        }`}>
+          <h2 className={`text-2xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            Route Visualization
+          </h2>
+          <div className={`rounded-lg p-4 border transition-colors ${
+            theme === 'dark'
+              ? 'bg-gray-700 border-gray-600'
+              : 'bg-gray-50 border-gray-200'
+          }`}>
             <canvas
               ref={canvasRef}
               width={420}
               height={420}
-              className="rounded border border-gray-300 bg-white"
+              className={`rounded border ${
+                theme === 'dark'
+                  ? 'border-gray-600'
+                  : 'border-gray-300'
+              }`}
             />
           </div>
-          <p className="mt-4 text-sm text-gray-600 text-center">
+          <p className={`mt-4 text-sm text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
             Interactive visualization of cities and the computed optimal route
           </p>
 
           {/* Algorithm Info */}
-          <div className="mt-6 w-full bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-2">Algorithm Information</h3>
-            <div className="text-sm text-gray-600">
+          <div className={`mt-6 w-full rounded-lg p-4 border transition-colors ${
+            theme === 'dark'
+              ? 'bg-gray-700 border-gray-600'
+              : 'bg-gray-50 border-gray-200'
+          }`}>
+            <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Algorithm Information
+            </h3>
+            <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
               {method === 'nearestNeighbor' && (
                 <p>Nearest Neighbor: Starts at a city and repeatedly visits the nearest unvisited city.</p>
               )}
@@ -498,3 +583,11 @@ return (
   </div>
 );
 };
+
+export default function Page() {
+  return (
+    <ThemeProvider>
+      <Home />
+    </ThemeProvider>
+  );
+}
