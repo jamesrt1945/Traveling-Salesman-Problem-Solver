@@ -8,11 +8,7 @@ export default function Header() {
     <div className="mb-12 text-center relative">
       <button
         onClick={toggleTheme}
-        className={`absolute right-0 top-0 p-3 rounded-lg transition-colors duration-200 ${
-          theme === 'dark'
-            ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
-            : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-        }`}
+        className="absolute right-0 top-0 p-3 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-yellow-400"
         aria-label="Toggle theme"
       >
         {theme === 'dark' ? (
@@ -26,7 +22,7 @@ export default function Header() {
         )}
       </button>
 
-      <h1 className={`text-4xl font-bold mb-2 flex items-center justify-center gap-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+      <h1 className="text-4xl font-bold mb-2 flex items-center justify-center gap-4 text-gray-900 dark:text-white">
         <img
           src="/logo.png"
           alt="TSP Solver Logo"
@@ -34,13 +30,13 @@ export default function Header() {
         />
         <span>Traveling Salesman Problem Solver</span>
       </h1>
-      <p className={`text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+      <p className="text-lg text-gray-600 dark:text-gray-300">
         Interactive visualization with multiple heuristic algorithms
       </p>
-      <div className={`mt-4 h-1 w-24 mx-auto rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
+      <div className="mt-4 h-1 w-24 mx-auto rounded-full bg-blue-600 dark:bg-blue-400"></div>
 
       {/* SEO-friendly description */}
-      <div className={`mt-6 max-w-3xl mx-auto text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} hidden md:block`}>
+      <div className="mt-6 max-w-3xl mx-auto text-sm text-gray-500 dark:text-gray-400 hidden md:block">
         <p>
           Solve the classic Traveling Salesman Problem using advanced heuristic algorithms.
           Add cities by specifying coordinates, choose from multiple optimization techniques,
