@@ -364,13 +364,28 @@ return (
           )}
         </button>
 
-        <h1 className={`text-4xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-          Traveling Salesman Problem Solver
+        <h1 className={`text-4xl font-bold mb-2 flex items-center justify-center gap-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <img
+            src="/logo.png"
+            alt="TSP Solver Logo"
+            className="h-12 w-12 object-contain"
+          />
+          <span>Traveling Salesman Problem Solver</span>
         </h1>
         <p className={`text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
           Interactive visualization with multiple heuristic algorithms
         </p>
         <div className={`mt-4 h-1 w-24 mx-auto rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
+
+        {/* SEO-friendly description */}
+        <div className={`mt-6 max-w-3xl mx-auto text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} hidden md:block`}>
+          <p>
+            Solve the classic Traveling Salesman Problem using advanced heuristic algorithms.
+            Add cities by specifying coordinates, choose from multiple optimization techniques,
+            and visualize the computed routes in real-time. Compare algorithm performance and
+            understand how different approaches tackle this NP-hard optimization problem.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
