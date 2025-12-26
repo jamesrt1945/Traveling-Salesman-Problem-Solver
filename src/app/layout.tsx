@@ -90,6 +90,8 @@ export default function RootLayout({
     "name": "TSP Solver - Traveling Salesman Problem Visualizer",
     "description": "Interactive Traveling Salesman Problem solver with real-time visualization using multiple heuristic algorithms including Nearest Neighbor, 2-Opt, Simulated Annealing, and Greedy Heuristic.",
     "url": "https://tsp-solver.vercel.app", // Replace with your actual domain
+    "logo": "https://tsp-solver.vercel.app/logo.png",
+    "image": "https://tsp-solver.vercel.app/logo.png",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "Web Browser",
     "offers": {
@@ -119,6 +121,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/logo.png" type="image/png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
